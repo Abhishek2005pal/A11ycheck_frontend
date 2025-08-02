@@ -215,12 +215,15 @@ const enhanceIssue = (issue: IssueDetail): EnhancedIssue => {
     solution: getSolution(issue.code, issue.message)
   }
 }
-
 interface Props {
-  scanId?: string
+  params: Promise<{
+    id: string
+  }>
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }
 
-export default function RealScanReport({ scanId: propScanId }: Props) {
+
+export default function RealScanReport({ params, searchParams }: Props) {
   const { theme, mounted } = useTheme()
   const [scanData, setScanData] = useState<ScanResult | null>(null)
   const [enhancedIssues, setEnhancedIssues] = useState<EnhancedIssue[]>([])
@@ -234,50 +237,56 @@ export default function RealScanReport({ scanId: propScanId }: Props) {
   const [showExportDropdown, setShowExportDropdown] = useState<boolean>(false)
 
   // Use prop scanId or fallback
-  const [scanId, setScanId] = useState<string>(() => {
-    return propScanId || '688609af9a9c080bec2e3418'
-  })
+// NEW:
+const [scanId, setScanId] = useState<string>('688609af9a9c080bec2e3418')
 
-  // Update scanId when prop changes
-  useEffect(() => {
-    if (propScanId && propScanId !== scanId) {
-      setScanId(propScanId)
-    }
-  }, [propScanId, scanId])
+  // // Update scanId when prop changes
+  // useEffect(() => {
+  //   if (propScanId && propScanId !== scanId) {
+  //     setScanId(propScanId)
+  //   }
+  // }, [propScanId, scanId])
 
-  // Get scan ID from URL - client-side only (fallback if no prop provided)
-  useEffect(() => {
-    if (!propScanId && typeof window !== 'undefined') {
-      const getScanIdFromUrl = () => {
-        // Option 1: From URL params (?id=xxx)
-        const urlParams = new URLSearchParams(window.location.search)
-        const paramId = urlParams.get('id')
-        if (paramId) return paramId
+  // // Get scan ID from URL - client-side only (fallback if no prop provided)
+  // useEffect(() => {
+  //   if (!propScanId && typeof window !== 'undefined') {
+  //     const getScanIdFromUrl = () => {
+  //       // Option 1: From URL params (?id=xxx)
+  //       const urlParams = new URLSearchParams(window.location.search)
+  //       const paramId = urlParams.get('id')
+  //       if (paramId) return paramId
 
-        // Option 2: From URL path (/scan/xxx)
-        const pathParts = window.location.pathname.split('/')
-        const pathId = pathParts[pathParts.length - 1]
-        if (pathId && pathId !== 'scan') return pathId
+  //       // Option 2: From URL path (/scan/xxx)
+  //       const pathParts = window.location.pathname.split('/')
+  //       const pathId = pathParts[pathParts.length - 1]
+  //       if (pathId && pathId !== 'scan') return pathId
 
-        // Option 3: Default for testing
-        return '688609af9a9c080bec2e3418'
+  //       // Option 3: Default for testing
+  //       return '688609af9a9c080bec2e3418'
+  //     }
+
+  //     const urlScanId = getScanIdFromUrl()
+  //     if (urlScanId !== scanId) {
+  //       setScanId(urlScanId)
+  //     }
+  //   }
+  // }, []) // Empty dependency array - runs once on mount
+
+ // Add this useEffect to handle the async params
+useEffect(() => {
+  const getParamsData = async () => {
+    try {
+      const resolvedParams = await params
+      if (resolvedParams.id) {
+        setScanId(resolvedParams.id)
       }
-
-      const urlScanId = getScanIdFromUrl()
-      if (urlScanId !== scanId) {
-        setScanId(urlScanId)
-      }
+    } catch (error) {
+      console.error('Error resolving params:', error)
     }
-  }, []) // Empty dependency array - runs once on mount
-
-  useEffect(() => {
-    if (scanId) {
-      fetchScanData()
-    } else {
-      setError('No scan ID provided')
-      setLoading(false)
-    }
-  }, [scanId])
+  }
+  
+  getParamsData()
+}, [params])
 
   const fetchScanData = async () => {
     try {
