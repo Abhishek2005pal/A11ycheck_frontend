@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import API_BASE_URL from '../config/api';
-
 export default function SignupPage() {
   const router = useRouter();
   const [username, setUsername] = useState('');
@@ -45,7 +44,7 @@ export default function SignupPage() {
     }
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/auth/signup`, {
+      const  res = await fetch(`${API_BASE_URL}/api/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, name, email, password }),
@@ -188,7 +187,14 @@ export default function SignupPage() {
             )}
           </button>
 
-         
+          {/* <button
+            type="button"
+            onClick={() => signIn('google')}
+            disabled={isLoading}
+            className="btn-google w-full"
+          >
+            Continue with Google
+          </button> */}
         </form>
 
         {/* Message (Success or Error) */}

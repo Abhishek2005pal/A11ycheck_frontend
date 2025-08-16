@@ -21,36 +21,44 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
+      console.log('Login API URL:', `${API_BASE_URL}/api/auth/login`); // Debug log
+      
       const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include', // Add this for CORS
         body: JSON.stringify({ username, password }),
       });
 
+      console.log('Response status:', res.status); // Debug log
+      
       const data = await res.json();
+      console.log('Response data:', data); // Debug log
       
       if (res.ok) {
         setMessage('✅ Login successful! Redirecting...');
         setIsSuccess(true);
         
-        // Store the token
+        // Store the token and user data
         localStorage.setItem('token', data.token);
+        if (data.user) {
+          localStorage.setItem('user', JSON.stringify(data.user));
+        }
         
-        // Trigger a page refresh or emit an event to update the header
-        // Option 1: Refresh the page to update header state
+        // Redirect to dashboard instead of home
         setTimeout(() => {
-          window.location.href = '/'; // This will refresh and update header
+          router.push('/dashboard');
         }, 1500);
         
-        // Option 2: If you want to use router.push (but header won't update immediately)
-        // setTimeout(() => router.push('/'), 1500);
       } else {
         setMessage(`❌ ${data.error || 'Login failed'}`);
         setIsSuccess(false);
       }
     } catch (err) {
       console.error('Login error:', err);
-      setMessage('❌ Server error. Please try again.');
+      setMessage('❌ Network error. Please check your connection and try again.');
       setIsSuccess(false);
     } finally {
       setIsLoading(false);
@@ -121,15 +129,6 @@ export default function LoginPage() {
               <span>Login</span>
             )}
           </button>
-
-          {/* <button
-            type="button"
-            onClick={() => signIn('google')}
-            disabled={isLoading}
-            className="btn-google w-full"
-          >
-            Continue with Google
-          </button> */}
         </form>
 
         {/* Message below form */}
