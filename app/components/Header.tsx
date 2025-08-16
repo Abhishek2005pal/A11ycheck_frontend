@@ -3,8 +3,8 @@
 import { GraduationCap, Home, Info, LayoutDashboard, LogIn, LogOut, Menu, Moon, Shield, Sun, User as UserIcon, UserPlus, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import API_BASE_URL from '../config/api';
 import { useTheme } from './ThemeProvider';
-
 interface User {
   id: string
   name?: string
@@ -30,43 +30,44 @@ export default function Header() {
     checkAuth()
   }, [])
 
-  const checkAuth = async () => {
-    try {
-      const token = localStorage.getItem('token')
-      if (!token) {
-        setIsLoggedIn(false)
-        setUser(null)
-        setIsLoading(false)
-        return
-      }
+// Replace this in the checkAuth function:
+const checkAuth = async () => {
+  try {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      setIsLoggedIn(false)
+      setUser(null)
+      setIsLoading(false)
+      return
+    }
 
-      const res = await fetch('http://localhost:4000/api/auth/me', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
-
-      if (res.ok) {
-        const userData: User = await res.json()
-        setUser(userData)
-        setIsLoggedIn(true)
-      } else {
-        // Token is invalid
-        localStorage.removeItem('token')
-        setIsLoggedIn(false)
-        setUser(null)
+    // Use API_BASE_URL instead of hardcoded URL
+    const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
       }
-    } catch (error) {
-      console.error('Auth check failed:', error)
+    })
+
+    if (res.ok) {
+      const userData = await res.json()
+      setUser(userData)
+      setIsLoggedIn(true)
+    } else {
+      // Token is invalid
       localStorage.removeItem('token')
       setIsLoggedIn(false)
       setUser(null)
-    } finally {
-      setIsLoading(false)
     }
+  } catch (error) {
+    console.error('Auth check failed:', error)
+    localStorage.removeItem('token')
+    setIsLoggedIn(false)
+    setUser(null)
+  } finally {
+    setIsLoading(false)
   }
-
+}
   const handleLogout = () => {
     localStorage.removeItem('token')
     setIsLoggedIn(false)
