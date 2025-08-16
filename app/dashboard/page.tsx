@@ -31,7 +31,7 @@ import {
   YAxis
 } from 'recharts';
 import { useTheme } from '../components/ThemeProvider'; // Adjust path as needed
-
+import API_BASE_URL from '../config/api';
 // Types
 interface RecentScan {
   _id: string
@@ -73,7 +73,7 @@ const Dashboard: React.FC = () => {
 
   const router = useRouter()
   const { theme } = useTheme()
-  const API_BASE = 'http://localhost:4000'
+  // const API_BASE = 'http://localhost:4000'
 
   // Check for JWT token on component mount
   useEffect(() => {
@@ -125,9 +125,9 @@ const Dashboard: React.FC = () => {
       setError(null)
       
       const [scansRes, statsRes, activityRes] = await Promise.all([
-        authenticatedFetch(`${API_BASE}/scans?days=${selectedPeriod}&page=${currentPage}`),
-        authenticatedFetch(`${API_BASE}/stats?days=${selectedPeriod}`),
-        authenticatedFetch(`${API_BASE}/activity?days=${selectedPeriod}`)
+        authenticatedFetch(`${API_BASE_URL}/scans?days=${selectedPeriod}&page=${currentPage}`),
+        authenticatedFetch(`${API_BASE_URL}/stats?days=${selectedPeriod}`),
+        authenticatedFetch(`${API_BASE_URL}/activity?days=${selectedPeriod}`)
       ])
 
       const scansData = await scansRes.json()
@@ -228,7 +228,7 @@ const Dashboard: React.FC = () => {
 
   const handleRescan = async (url: string) => {
     try {
-      const res = await authenticatedFetch(`${API_BASE}/scan`, {
+      const res = await authenticatedFetch(`${API_BASE_URL}/scan`, {
         method: 'POST',
         body: JSON.stringify({ url }),
       })
@@ -252,7 +252,7 @@ const Dashboard: React.FC = () => {
     if (!confirm('Are you sure you want to delete this scan?')) return
 
     try {
-      const res = await authenticatedFetch(`${API_BASE}/scan/${id}`, {
+      const res = await authenticatedFetch(`${API_BASE_URL}/scan/${id}`, {
         method: 'DELETE',
       })
 

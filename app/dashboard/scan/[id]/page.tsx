@@ -27,16 +27,15 @@ import {
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
-// Theme hook (keeping for existing functionality)
+// REMOVE localStorage usage for theme (not supported in artifacts)
 const useTheme = () => {
   const [theme, setTheme] = useState('light')
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     setMounted(true)
-    const savedTheme = localStorage.getItem('theme') || 'light'
-    setTheme(savedTheme)
-    document.documentElement.classList.toggle('dark', savedTheme === 'dark')
+    // Remove localStorage usage
+    setTheme('light')
   }, [])
 
   return { theme, mounted }
@@ -86,7 +85,7 @@ interface EnhancedIssue extends IssueDetail {
   }
 }
 
-// Enhancement functions
+// Enhancement functions (keeping the same)
 const enhanceIssue = (issue: IssueDetail): EnhancedIssue => {
   const getPlainEnglish = (message: string, code: string): string => {
     if (code.includes('Colour') || code.includes('color')) 
@@ -215,13 +214,13 @@ const enhanceIssue = (issue: IssueDetail): EnhancedIssue => {
     solution: getSolution(issue.code, issue.message)
   }
 }
+
 interface Props {
   params: Promise<{
     id: string
   }>
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }
-
 
 export default function RealScanReport({ params, searchParams }: Props) {
   const { theme, mounted } = useTheme()
@@ -236,73 +235,67 @@ export default function RealScanReport({ params, searchParams }: Props) {
   const [exportFormat, setExportFormat] = useState<string>('pdf')
   const [showExportDropdown, setShowExportDropdown] = useState<boolean>(false)
 
-  // Use prop scanId or fallback
-// NEW:
-const [scanId, setScanId] = useState<string>('688609af9a9c080bec2e3418')
+  // Fixed scanId initialization
+  const [scanId, setScanId] = useState<string>('')
 
-  // // Update scanId when prop changes
-  // useEffect(() => {
-  //   if (propScanId && propScanId !== scanId) {
-  //     setScanId(propScanId)
-  //   }
-  // }, [propScanId, scanId])
-
-  // // Get scan ID from URL - client-side only (fallback if no prop provided)
-  // useEffect(() => {
-  //   if (!propScanId && typeof window !== 'undefined') {
-  //     const getScanIdFromUrl = () => {
-  //       // Option 1: From URL params (?id=xxx)
-  //       const urlParams = new URLSearchParams(window.location.search)
-  //       const paramId = urlParams.get('id')
-  //       if (paramId) return paramId
-
-  //       // Option 2: From URL path (/scan/xxx)
-  //       const pathParts = window.location.pathname.split('/')
-  //       const pathId = pathParts[pathParts.length - 1]
-  //       if (pathId && pathId !== 'scan') return pathId
-
-  //       // Option 3: Default for testing
-  //       return '688609af9a9c080bec2e3418'
-  //     }
-
-  //     const urlScanId = getScanIdFromUrl()
-  //     if (urlScanId !== scanId) {
-  //       setScanId(urlScanId)
-  //     }
-  //   }
-  // }, []) // Empty dependency array - runs once on mount
-
- // Add this useEffect to handle the async params
-useEffect(() => {
-  const getParamsData = async () => {
-    try {
-      const resolvedParams = await params
-      if (resolvedParams.id) {
-        setScanId(resolvedParams.id)
+  // Handle params resolution
+  useEffect(() => {
+    const getParamsData = async () => {
+      try {
+        const resolvedParams = await params
+        console.log('Resolved params:', resolvedParams) // Debug log
+        if (resolvedParams.id) {
+          setScanId(resolvedParams.id)
+          console.log('Set scanId to:', resolvedParams.id) // Debug log
+        } else {
+          // Fallback - extract from URL
+          const pathParts = window.location.pathname.split('/')
+          const urlId = pathParts[pathParts.length - 1]
+          if (urlId && urlId !== 'scan') {
+            setScanId(urlId)
+            console.log('Set scanId from URL to:', urlId) // Debug log
+          } else {
+            setError('No scan ID found in URL')
+          }
+        }
+      } catch (error) {
+        console.error('Error resolving params:', error)
+        setError('Error getting scan ID from URL')
       }
-    } catch (error) {
-      console.error('Error resolving params:', error)
     }
-  }
-  
-  getParamsData()
-}, [params])
+    
+    getParamsData()
+  }, [params])
+
+  // Fetch data when scanId changes
+  useEffect(() => {
+    if (scanId) {
+      console.log('Fetching data for scanId:', scanId) // Debug log
+      fetchScanData()
+    }
+  }, [scanId])
 
   const fetchScanData = async () => {
     try {
       setLoading(true)
       setError(null)
       
-      // Get token - adjust the key name based on your auth system
-      const token = localStorage.getItem('authToken') || 
-                   localStorage.getItem('token') || 
-                   localStorage.getItem('accessToken')
+      console.log('Starting fetch for scanId:', scanId) // Debug log
       
-      console.log('Fetching scan data:', { scanId, hasToken: !!token })
-      
-      // Update this URL to match your backend
+      // Build the API URL
       const apiUrl = `http://localhost:4000/scan/${scanId}`
-      console.log('API URL:', apiUrl)
+      console.log('API URL:', apiUrl) // Debug log
+      
+      // Get token (try multiple possible keys)
+      let token = null
+      if (typeof window !== 'undefined') {
+        token = localStorage.getItem('authToken') || 
+               localStorage.getItem('token') || 
+               localStorage.getItem('accessToken') ||
+               localStorage.getItem('jwt')
+      }
+      
+      console.log('Auth token found:', !!token) // Debug log (don't log actual token)
       
       const headers: HeadersInit = {
         'Content-Type': 'application/json'
@@ -312,34 +305,41 @@ useEffect(() => {
         headers['Authorization'] = `Bearer ${token}`
       }
       
-      const response = await fetch(apiUrl, { headers })
+      console.log('Making fetch request...') // Debug log
+      const response = await fetch(apiUrl, { 
+        headers,
+        method: 'GET'
+      })
       
-      console.log('Response status:', response.status)
+      console.log('Response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      }) // Debug log
       
       if (!response.ok) {
         const errorText = await response.text()
-        console.error('API Error:', errorText)
+        console.error('API Error Response:', errorText) // Debug log
         throw new Error(`HTTP ${response.status}: ${errorText || 'Failed to fetch scan data'}`)
       }
 
       const data: ScanResult = await response.json()
-      console.log('Received scan data:', data)
+      console.log('Parsed JSON data:', data) // Debug log
       
       setScanData(data)
       
-      // Enhance REAL issues from backend with additional information
+      // Enhance issues
       if (data.issueDetails && data.issueDetails.length > 0) {
         const enhanced = data.issueDetails.map(issue => enhanceIssue(issue))
         setEnhancedIssues(enhanced)
-        console.log('Enhanced real issues:', enhanced)
+        console.log('Enhanced issues:', enhanced.length) // Debug log
       } else {
-        // No issues found
         setEnhancedIssues([])
-        console.log('No issues found in scan')
+        console.log('No issues found in scan') // Debug log
       }
       
     } catch (err) {
-      console.error('Fetch error:', err)
+      console.error('Fetch error:', err) // Debug log
       const errorMessage = err instanceof Error ? err.message : 'An error occurred while fetching scan data'
       setError(errorMessage)
     } finally {
@@ -348,7 +348,6 @@ useEffect(() => {
   }
 
   const handleBackToDashboard = () => {
-    // Navigate to dashboard - adjust the path as needed for your routing
     if (typeof window !== 'undefined') {
       window.location.href = '/dashboard'
     }
@@ -402,7 +401,6 @@ useEffect(() => {
   }
 
   const exportToPDF = () => {
-    // Create a simplified HTML structure for PDF export
     const pdfContent = `
       <!DOCTYPE html>
       <html>
@@ -540,12 +538,16 @@ useEffect(() => {
     return severityMatch && categoryMatch
   })
 
+  // Debug render
+  console.log('Render state:', { loading, error, scanId, scanData: !!scanData, enhancedIssuesCount: enhancedIssues.length })
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center">
         <div className="text-center">
           <Loader className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
           <p className="text-gray-600 dark:text-gray-400">Loading scan results...</p>
+          <p className="text-gray-400 text-sm mt-2">Scan ID: {scanId}</p>
         </div>
       </div>
     )
@@ -554,22 +556,40 @@ useEffect(() => {
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center">
-        <div className="text-center">
+        <div className="text-center max-w-md">
           <XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Error Loading Scan</h2>
-          <p className="text-gray-600 dark:text-gray-400">{error}</p>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">{error}</p>
+          <p className="text-gray-400 text-sm mb-4">Scan ID: {scanId}</p>
           <button 
             onClick={fetchScanData}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 mr-2"
           >
             Try Again
+          </button>
+          <button 
+            onClick={handleBackToDashboard}
+            className="mt-4 px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+          >
+            Back to Dashboard
           </button>
         </div>
       </div>
     )
   }
 
-  if (!scanData) return null
+  if (!scanData) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <Info className="w-12 h-12 text-gray-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No Scan Data</h2>
+          <p className="text-gray-600 dark:text-gray-400">No data available for this scan.</p>
+          <p className="text-gray-400 text-sm mt-2">Scan ID: {scanId}</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900 transition-colors">

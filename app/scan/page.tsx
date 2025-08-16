@@ -1,7 +1,7 @@
 'use client'
 import { AlertCircle, AlertTriangle, ArrowRight, CheckCircle, CheckCircle2, Clock, ExternalLink, Eye, Globe, Info, Mail, Monitor, RotateCcw, Settings, Smartphone, Zap } from 'lucide-react'
 import { useEffect, useState } from 'react'
-
+import API_BASE_URL from '../config/api'
 interface ScanIssue {
   id: number
   type: string
@@ -70,7 +70,7 @@ export default function ScanPage() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false)
   const [isEmailSending, setIsEmailSending] = useState<boolean>(false)
 
-  const API_BASE = 'http://localhost:4000'
+  // const API_BASE = 'http://localhost:4000'
 
   // Theme management
   useEffect(() => {
@@ -173,7 +173,7 @@ export default function ScanPage() {
     setIsEmailSending(true)
     
     try {
-      const response = await authenticatedFetch(`${API_BASE}/email-scan-results`, {
+      const response = await authenticatedFetch(`${API_BASE_URL}/email-scan-results`, {
         method: 'POST',
         body: JSON.stringify({ 
           scanId: result._id,
@@ -212,7 +212,7 @@ export default function ScanPage() {
       if (isLoggedIn) {
         try {
           // Call your actual backend API for logged-in users
-          const response = await authenticatedFetch(`${API_BASE}/scan`, {
+          const response = await authenticatedFetch(`${API_BASE_URL}/scan`, {
             method: 'POST',
             body: JSON.stringify({ 
               url: url,
