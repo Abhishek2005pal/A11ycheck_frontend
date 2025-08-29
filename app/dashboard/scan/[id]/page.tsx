@@ -1,5 +1,6 @@
 'use client'
-
+// import API_BASE_URL from '../config/api'; // Adjust path if needed
+import API_BASE_URL from '@/app/config/api'
 import {
   AlertCircle,
   AlertTriangle,
@@ -276,76 +277,80 @@ export default function RealScanReport({ params, searchParams }: Props) {
   }, [scanId])
 
   const fetchScanData = async () => {
+    // Make sure we don't fetch without an ID
+    if (!scanId) {
+      console.log('Skipping fetch: no scanId yet.');
+      return;
+    }
+
     try {
-      setLoading(true)
-      setError(null)
+      setLoading(true);
+      setError(null);
       
-      console.log('Starting fetch for scanId:', scanId) // Debug log
+      console.log('Starting fetch for scanId:', scanId);
       
-      // Build the API URL
-      const apiUrl = `http://localhost:4000/scan/${scanId}`
-      console.log('API URL:', apiUrl) // Debug log
+      // ✅ CORRECT: Build the API URL using the imported variable
+      const apiUrl = `${API_BASE_URL}/scan/${scanId}`;
+      console.log('API URL:', apiUrl); // This will now show the correct production URL when deployed
       
-      // Get token (try multiple possible keys)
-      let token = null
+      let token = null;
       if (typeof window !== 'undefined') {
         token = localStorage.getItem('authToken') || 
-               localStorage.getItem('token') || 
-               localStorage.getItem('accessToken') ||
-               localStorage.getItem('jwt')
+                localStorage.getItem('token') || 
+                localStorage.getItem('accessToken') ||
+                localStorage.getItem('jwt');
       }
       
-      console.log('Auth token found:', !!token) // Debug log (don't log actual token)
+      console.log('Auth token found:', !!token);
       
       const headers: HeadersInit = {
         'Content-Type': 'application/json'
-      }
+      };
       
       if (token) {
-        headers['Authorization'] = `Bearer ${token}`
+        headers['Authorization'] = `Bearer ${token}`;
       }
       
-      console.log('Making fetch request...') // Debug log
+      console.log('Making fetch request...');
       const response = await fetch(apiUrl, { 
         headers,
         method: 'GET'
-      })
+      });
       
       console.log('Response received:', {
         status: response.status,
         statusText: response.statusText,
         ok: response.ok
-      }) // Debug log
+      });
       
       if (!response.ok) {
-        const errorText = await response.text()
-        console.error('API Error Response:', errorText) // Debug log
-        throw new Error(`HTTP ${response.status}: ${errorText || 'Failed to fetch scan data'}`)
+        const errorText = await response.text();
+        console.error('API Error Response:', errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText || 'Failed to fetch scan data'}`);
       }
 
-      const data: ScanResult = await response.json()
-      console.log('Parsed JSON data:', data) // Debug log
+      const data: ScanResult = await response.json();
+      console.log('Parsed JSON data:', data);
       
-      setScanData(data)
+      setScanData(data);
       
-      // Enhance issues
       if (data.issueDetails && data.issueDetails.length > 0) {
-        const enhanced = data.issueDetails.map(issue => enhanceIssue(issue))
-        setEnhancedIssues(enhanced)
-        console.log('Enhanced issues:', enhanced.length) // Debug log
+        const enhanced = data.issueDetails.map(issue => enhanceIssue(issue));
+        setEnhancedIssues(enhanced);
+        console.log('Enhanced issues:', enhanced.length);
       } else {
-        setEnhancedIssues([])
-        console.log('No issues found in scan') // Debug log
+        setEnhancedIssues([]);
+        console.log('No issues found in scan');
       }
       
     } catch (err) {
-      console.error('Fetch error:', err) // Debug log
-      const errorMessage = err instanceof Error ? err.message : 'An error occurred while fetching scan data'
-      setError(errorMessage)
+      console.error('Fetch error:', err);
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred while fetching scan data';
+      setError(errorMessage);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleBackToDashboard = () => {
     if (typeof window !== 'undefined') {
